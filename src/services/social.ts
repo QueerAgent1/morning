@@ -10,16 +10,26 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Schema Validation
+// Schema Validation with Zod
 const SocialPostSchema = z.object({
   platform: z.string(),
   content: z.string(),
   media_urls: z.array(z.string()).optional(),
-  scheduled_for: z.string().optional(),
+  scheduled_at: z.string().optional(), // Corrected property name to scheduled_at
   tags: z.array(z.string()).optional(),
-  location: z.record(z.unknown()).optional(),
-  campaign_id: z.string().optional()
+  location: z.record(z.unknown()).optional(), // Consider a more specific schema for location
+  campaign_id: z.string().optional(),
+  status: z.enum(['draft', 'scheduled', 'published']).optional() // Add status field for scheduling
 });
+
+const SocialInteractionSchema = z.object({
+    post_id: z.string(),
+    type: z.enum(['like', 'share', 'comment']),
+    platform_user_id: z.string().optional(),
+    platform_username:z.string().optional(),
+    content: z.string().optional(),
+    metadata: z.record(z.unknown()).optional(),
+})
 
 export type SocialPost = z.infer<typeof SocialPostSchema>;
 
@@ -43,84 +53,105 @@ interface SocialAnalytics {
 export const createSocialPost = async (post: SocialPost) => {
   try {
     const validatedPost = SocialPostSchema.parse(post);
-    
     const { data, error } = await supabase
       .from('social_posts')
-      .insert(validatedPost)
+      .insert(validatedPost) // Use validatedPost
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error creating social post:', error);
+      throw error;
+    }
+
     return data;
   } catch (error) {
-    console.error('Error creating social post:', error);
+    if (error instanceof z.ZodError) {
+      console.error('Zod validation error:', error.format());    
+    } else {
+      console.error('Error creating social post:', error);
+    }
     throw error;
   }
 };
 
 export const scheduleSocialPost = async (post: SocialPost) => {
   try {
-    if (!post.scheduled_for) {
-      throw new Error('Scheduled time is required');
+    const validatedPost = SocialPostSchema.parse(post)
+
+    if (!validatedPost.scheduled_at) {
+      throw new Error('Scheduled time is required for scheduling.');
     }
+
+    // Ensure status is set to 'scheduled'
+    validatedPost.status = 'scheduled';
 
     const { data, error } = await supabase
       .from('social_posts')
-      .insert({
-        ...post,
-        status: 'scheduled'
-      })
+      .insert(validatedPost) // Use validatedPost here as well
       .select()
       .single();
 
     if (error) throw error;
     return data;
+
   } catch (error) {
-    console.error('Error scheduling social post:', error);
+    if (error instanceof z.ZodError) {
+      console.error('Zod validation error in scheduleSocialPost :', error.format());    
+    } else {
+      console.error('Error scheduling social post:', error);
+    }
     throw error;
   }
 };
 
 export const getSocialPostAnalytics = async (postId: string): Promise<SocialAnalytics> => {
   try {
-    const { data: interactions, error } = await supabase
+    const { data, error } = await supabase
       .from('social_interactions')
-      .select('type, count')
-      .eq('post_id', postId);
+      .select(`
+        count(CASE WHEN type = 'like' THEN 1 END) AS likes,
+        count(CASE WHEN type = 'share' THEN 1 END) AS shares,
+        count(CASE WHEN type = 'comment' THEN 1 END) AS comments,
+        count(*) AS total_engagement
+      `)
+      .eq('post_id', postId)
+      .single();
 
     if (error) throw error;
 
     const analytics: SocialAnalytics = {
-      likes: 0,
-      shares: 0,
-      comments: 0,
-      total_engagement: 0
+      likes: data?.likes ?? 0,
+      shares: data?.shares ?? 0,
+      comments: data?.comments ?? 0,
+      total_engagement: data?.total_engagement ?? 0,
     };
-
-    interactions.forEach((interaction: { type: 'like' | 'share' | 'comment'; count: number }) => {
-      analytics[interaction.type] = interaction.count;
-      analytics.total_engagement += interaction.count;
-    });
 
     return analytics;
   } catch (error) {
-    console.error('Error fetching post analytics:', error);
+    console.error('Error fetching social post analytics:', error);
     throw error;
   }
 };
 
 export const trackSocialInteraction = async (interaction: SocialInteraction) => {
   try {
-    const { data, error } = await supabase
+    const validatedInteraction = SocialInteractionSchema.parse(interaction); // Validate interaction data
+    const {data, error } = await supabase
       .from('social_interactions')
-      .insert(interaction)
+      .insert(validatedInteraction) // Use validatedInteraction
       .select()
       .single();
 
     if (error) throw error;
     return data;
+
   } catch (error) {
-    console.error('Error tracking social interaction:', error);
+    if (error instanceof z.ZodError) {
+      console.error('Zod validation error in trackSocialInteraction:', error.format());    
+    } else {
+      console.error('Error tracking social interaction:', error);
+    }
     throw error;
   }
 };

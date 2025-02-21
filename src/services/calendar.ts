@@ -251,9 +251,9 @@ export const autoScheduleContent = async (
       // Skip excluded dates
       if (!preferences.excluded_dates?.includes(format(currentDate, 'yyyy-MM-dd'))) {
         // Add preferred posting time
-        const timeIndex = schedule.length % (preferences.preferred_times?.length || 1);
+        const timeIndex: number = schedule.length % (preferences.preferred_times?.length || 1);
         const defaultTime = '10:00';
-        const time = preferences.preferred_times?.[timeIndex] || defaultTime;
+        const time: string = preferences.preferred_times?.[timeIndex] || defaultTime;
         
         schedule.push({
           scheduled_date: `${format(currentDate, 'yyyy-MM-dd')}T${time}`,
