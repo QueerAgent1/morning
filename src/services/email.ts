@@ -172,7 +172,12 @@ export const getCampaignPerformance = async (campaignId: string): Promise<Campai
     if (error) throw error;
 
     const metrics: CampaignAnalytics = {
-      ...data,
+      total_sent: data.total_sent ?? 0,
+      total_opened: data.total_opened ?? 0,
+      total_clicked: data.total_clicked ?? 0,
+      total_converted: data.total_converted ?? 0,
+      total_unsubscribed: data.total_unsubscribed ?? 0,
+      total_revenue: data.total_revenue ?? 0,
       open_rate: (data.total_opened / data.total_sent) * 100,
       click_rate: (data.total_clicked / data.total_sent) * 100,
       conversion_rate: (data.total_converted / data.total_sent) * 100,
@@ -185,4 +190,4 @@ export const getCampaignPerformance = async (campaignId: string): Promise<Campai
     console.error('Error fetching campaign performance:', error);
     throw error;
   }
-}
+};
