@@ -1,14 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
+import { render } from '@react-email/render';
+import { Resend } from 'resend';
 import { z } from 'zod';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const resendApiKey = import.meta.env.VITE_RESEND_API_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
+if (!resendApiKey) {
+  throw new Error('Missing Resend API key');
+}
+
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const resend = new Resend(resendApiKey);
 
 // Zod schemas for validation
 const EmailTemplateSchema = z.object({
@@ -94,7 +102,7 @@ export const scheduleCampaign = async (campaign: EmailCampaign) => {
     if (contactsError) throw contactsError;
 
     // Schedule emails for each contact
-    const scheduledEmails = contacts.map(async (contact) => {
+    const scheduledEmails = contacts.map(async (contact: any) => {
       try {
         // Replace variables in template
         let content = template.content;
@@ -177,5 +185,4 @@ export const getCampaignPerformance = async (campaignId: string): Promise<Campai
     console.error('Error fetching campaign performance:', error);
     throw error;
   }
-};
-
+}

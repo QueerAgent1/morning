@@ -120,10 +120,10 @@ export const getSocialPostAnalytics = async (postId: string): Promise<SocialAnal
     if (error) throw error;
 
     const analytics: SocialAnalytics = {
-      likes: data?.likes ?? 0,
-      shares: data?.shares ?? 0,
-      comments: data?.comments ?? 0,
-      total_engagement: data?.total_engagement ?? 0,
+      likes: data.likes ?? 0,
+      shares: data.shares ?? 0,
+      comments: data.comments ?? 0,
+      total_engagement: data.total_engagement ?? 0,
     };
 
     return analytics;
