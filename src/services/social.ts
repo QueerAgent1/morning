@@ -23,13 +23,13 @@ const SocialPostSchema = z.object({
 });
 
 const SocialInteractionSchema = z.object({
-    post_id: z.string(),
-    type: z.enum(['like', 'share', 'comment']),
-    platform_user_id: z.string().optional(),
-    platform_username:z.string().optional(),
-    content: z.string().optional(),
-    metadata: z.record(z.unknown()).optional(),
-})
+  post_id: z.string(),
+  type: z.enum(['like', 'share', 'comment']),
+  platform_user_id: z.string().optional(),
+  platform_username: z.string().optional(),
+  content: z.string().optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
 
 export type SocialPost = z.infer<typeof SocialPostSchema>;
 
@@ -77,7 +77,7 @@ export const createSocialPost = async (post: SocialPost) => {
 
 export const scheduleSocialPost = async (post: SocialPost) => {
   try {
-    const validatedPost = SocialPostSchema.parse(post)
+    const validatedPost = SocialPostSchema.parse(post);
 
     if (!validatedPost.scheduled_at) {
       throw new Error('Scheduled time is required for scheduling.');
@@ -94,10 +94,9 @@ export const scheduleSocialPost = async (post: SocialPost) => {
 
     if (error) throw error;
     return data;
-
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('Zod validation error in scheduleSocialPost :', error.format());    
+      console.error('Zod validation error in scheduleSocialPost:', error.format());    
     } else {
       console.error('Error scheduling social post:', error);
     }
@@ -137,7 +136,7 @@ export const getSocialPostAnalytics = async (postId: string): Promise<SocialAnal
 export const trackSocialInteraction = async (interaction: SocialInteraction) => {
   try {
     const validatedInteraction = SocialInteractionSchema.parse(interaction); // Validate interaction data
-    const {data, error } = await supabase
+    const { data, error } = await supabase
       .from('social_interactions')
       .insert(validatedInteraction) // Use validatedInteraction
       .select()
@@ -145,7 +144,6 @@ export const trackSocialInteraction = async (interaction: SocialInteraction) => 
 
     if (error) throw error;
     return data;
-
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('Zod validation error in trackSocialInteraction:', error.format());    
@@ -154,4 +152,4 @@ export const trackSocialInteraction = async (interaction: SocialInteraction) => 
     }
     throw error;
   }
-};
+}
